@@ -1,0 +1,118 @@
+# RAW_START
+# RAW 
+# RAW upstream {{ item.domain }}_php_workers {
+# RAW     # Should rely on the ansible var: { { php_fpm_listen_address } }
+# RAW     # server unix:/tmp/php-fpm.sock;
+# RAW     server 127.0.0.1:9000;
+# RAW }
+# RAW 
+# RAW server {
+# RAW     listen {% if item.bind %}{{ item.bind }}:{% endif %}{{ item.port | default('80') }};
+# RAW     server_name {{ item.domain | default('localhost') }} {{ item.aliases }};
+# RAW   
+# RAW     access_log /var/log/nginx/{{ item.domain | default('localhost') }}/{{ item.domain | default('localhost') }}-access.log main;
+# RAW     error_log /var/log/nginx/{{ item.domain | default('localhost') }}/{{ item.domain | default('localhost') }}-error.log;
+# RAW 
+# RAW     ## --- SSL setup ---
+# RAW     ## Also change the listen port above to 443
+# RAW     ##
+# RAW     # listen 443 ssl;
+# RAW 
+# RAW     # ssl_certificate      /etc/nginx/ssl/DOMAIN.crt;
+# RAW     # ssl_certificate_key  /etc/nginx/ssl/DOMAIN.nopass.key;
+# RAW     # ssl_prefer_server_ciphers on;
+# RAW 
+# RAW     ## Please enable correct protocol/cipher-suite below. 
+# RAW     ## Default: 'INTERMEDIATE'
+# RAW     ## See https://wiki.mozilla.org/Security/Server_Side_TLS
+# RAW 
+# RAW     ## INTERMEDIATE
+# RAW     ## It is is compatible with Firefox 1+, Chrome 1+, IE 7+, Opera 5+ and Safari 1+.
+# RAW     # ssl_protocols TLSv1 TLSv1.1 TLSv1.2;
+# RAW     # ssl_ciphers 'ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-AES256-GCM-SHA384:DHE-RSA-AES128-GCM-SHA256:DHE-DSS-AES128-GCM-SHA256:kEDH+AESGCM:ECDHE-RSA-AES128-SHA256:ECDHE-ECDSA-AES128-SHA256:ECDHE-RSA-AES128-SHA:ECDHE-ECDSA-AES128-SHA:ECDHE-RSA-AES256-SHA384:ECDHE-ECDSA-AES256-SHA384:ECDHE-RSA-AES256-SHA:ECDHE-ECDSA-AES256-SHA:DHE-RSA-AES128-SHA256:DHE-RSA-AES128-SHA:DHE-DSS-AES128-SHA256:DHE-RSA-AES256-SHA256:DHE-DSS-AES256-SHA:DHE-RSA-AES256-SHA:AES128-GCM-SHA256:AES256-GCM-SHA384:AES128-SHA256:AES256-SHA256:AES128-SHA:AES256-SHA:AES:CAMELLIA:DES-CBC3-SHA:!aNULL:!eNULL:!EXPORT:!DES:!RC4:!MD5:!PSK:!aECDH:!EDH-DSS-DES-CBC3-SHA:!EDH-RSA-DES-CBC3-SHA:!KRB5-DES-CBC3-SHA';
+# RAW 
+# RAW     ## MODERN
+# RAW     ## It is compatible with Firefox 27+, Chrome 22+, IE 11+, Opera 14+ and Safari 7+.
+# RAW     # ssl_protocols TLSv1.1 TLSv1.2;
+# RAW     # ssl_ciphers 'ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-AES256-GCM-SHA384:DHE-RSA-AES128-GCM-SHA256:DHE-DSS-AES128-GCM-SHA256:kEDH+AESGCM:ECDHE-RSA-AES128-SHA256:ECDHE-ECDSA-AES128-SHA256:ECDHE-RSA-AES128-SHA:ECDHE-ECDSA-AES128-SHA:ECDHE-RSA-AES256-SHA384:ECDHE-ECDSA-AES256-SHA384:ECDHE-RSA-AES256-SHA:ECDHE-ECDSA-AES256-SHA:DHE-RSA-AES128-SHA256:DHE-RSA-AES128-SHA:DHE-DSS-AES128-SHA256:DHE-RSA-AES256-SHA256:DHE-DSS-AES256-SHA:DHE-RSA-AES256-SHA:AES128-GCM-SHA256:AES256-GCM-SHA384:AES128-SHA256:AES256-SHA256:AES128-SHA:AES256-SHA:AES:CAMELLIA:DES-CBC3-SHA:!aNULL:!eNULL:!EXPORT:!DES:!RC4:!MD5:!PSK:!aECDH:!EDH-DSS-DES-CBC3-SHA:!EDH-RSA-DES-CBC3-SHA:!KRB5-DES-CBC3-SHA';
+# RAW 
+# RAW     ## OLD
+# RAW     ## It works with all clients back to Windows XP/IE6. It should be used as a last resort only.
+# RAW     # ssl_protocols SSLv3 TLSv1 TLSv1.1 TLSv1.2;
+# RAW     # ssl_ciphers 'ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-AES256-GCM-SHA384:DHE-RSA-AES128-GCM-SHA256:DHE-DSS-AES128-GCM-SHA256:kEDH+AESGCM:ECDHE-RSA-AES128-SHA256:ECDHE-ECDSA-AES128-SHA256:ECDHE-RSA-AES128-SHA:ECDHE-ECDSA-AES128-SHA:ECDHE-RSA-AES256-SHA384:ECDHE-ECDSA-AES256-SHA384:ECDHE-RSA-AES256-SHA:ECDHE-ECDSA-AES256-SHA:DHE-RSA-AES128-SHA256:DHE-RSA-AES128-SHA:DHE-DSS-AES128-SHA256:DHE-RSA-AES256-SHA256:DHE-DSS-AES256-SHA:DHE-RSA-AES256-SHA:AES128-GCM-SHA256:AES256-GCM-SHA384:AES128-SHA256:AES256-SHA256:AES128-SHA:AES256-SHA:AES:CAMELLIA:DES-CBC3-SHA:!aNULL:!eNULL:!EXPORT:!DES:!RC4:!MD5:!PSK:!aECDH:!EDH-DSS-DES-CBC3-SHA:!EDH-RSA-DES-CBC3-SHA:!KRB5-DES-CBC3-SHA';
+# RAW 
+# RAW     ## --- END SSL setup ---
+# RAW 
+# RAW 
+# RAW     # This will print rewrite logs to the error log. The error log needs to be
+# RAW     # set to 'notice' for this to work.
+# RAW     rewrite_log off;
+# RAW   
+# RAW     # Setup document root. Should not be set inside location {}'s if you do not
+# RAW     # have too
+# RAW     root {{ fact_nginx_datadir }}/sites/{{ item.domain | default ('localhost') }}/;
+# RAW   
+# RAW     # Change 500 error page to something a little more pretty
+# RAW     error_page   502 503 504  /50x.html;
+# RAW     location = /50x.html {
+# RAW       root /usr/share/nginx/html/;
+# RAW     }
+# RAW   
+# RAW     # Setup index order.
+# RAW     index index.php index.html index.htm;
+# RAW 
+# RAW     # php pages handling
+# RAW     location ~ \.php$ {
+# RAW         try_files $uri      = 404;
+# RAW         fastcgi_pass              {{ item.domain }}_php_workers;
+# RAW         fastcgi_buffer_size       128k;
+# RAW         fastcgi_buffers           64 128k;
+# RAW         fastcgi_intercept_errors  on;
+# RAW         fastcgi_param             SCRIPT_FILENAME  $document_root$fastcgi_script_name;
+# RAW         include                   fastcgi_params;
+# RAW   
+# RAW         # PHP tuning.
+# RAW         # tcp_nopush can add milliseconds to latency when pushing from a cache.
+# RAW         #tcp_nopush          off;
+# RAW         #keepalive_requests  0;
+# RAW     }
+# RAW 
+# RAW     # Block access to hidden files
+# RAW     location ~ /\. {
+# RAW         deny all;
+# RAW         access_log off;
+# RAW         log_not_found off;
+# RAW     }
+# RAW
+# RAW     location ~ /CNC_NO_TOMCAT_INSTALLED {
+# RAW         proxy_pass        http://127.0.0.1:8080;
+# RAW         proxy_set_header  X-Real-IP  $remote_addr;
+# RAW         proxy_set_header  Host $http_host;
+# RAW         #proxy_http_version 1.1;
+# RAW         #proxy_set_header Upgrade $http_upgrade;
+# RAW         #proxy_set_header Connection $connection_upgrade;
+# RAW         proxy_set_header   X-NginX-Proxy    true;
+# RAW         proxy_redirect     off;
+# RAW         proxy_read_timeout 86400;
+# RAW         proxy_buffering off;
+# RAW         proxy_ignore_client_abort off;
+# RAW     }
+# RAW
+# RAW 
+# RAW     location = /favicon.ico {
+# RAW         log_not_found off;
+# RAW         access_log off;
+# RAW     }
+# RAW 
+# RAW     location = /robots.txt {
+# RAW         allow all;
+# RAW         log_not_found off;
+# RAW         access_log off;
+# RAW     }
+# RAW 
+# RAW     location ~* \.(js|css|png|jpg|jpeg|gif|ico)$ {
+# RAW         expires {{ nginx_expire_values }};
+# RAW     }
+# RAW }
+# RAW
+# RAW_END

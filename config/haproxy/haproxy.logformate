@@ -1,0 +1,19 @@
+#!/bin/bash
+#Desp: this part is doing something after install haproxy.
+##########################################
+##2015-08-18 lambert.li@chinanetcloud.com
+#########################################
+cat >> /tmp/haproxy.log <<END
+# log config for haproxy
+destination d_haproxy { file("/var/log/haproxy/haproxy.log"); };
+filter f_haproxy { facility(local3) and level(notice,warn); };
+log { source(s_sys); filter(f_haproxy); destination(d_haproxy); };
+
+destination d_haproxy_err { file("/var/log/haproxy/haproxy_err.log"); };
+filter f_haproxy_err { facility(local3) and level(err); };
+log { source(s_sys); filter(f_haproxy_err); destination(d_haproxy_err); };
+
+destination d_haproxy_access { file("/var/log/haproxy/haproxy_access.log"); };
+filter f_haproxy_access { facility(local3) and level(info); };
+log { source(s_sys); filter(f_haproxy_access); destination(d_haproxy_access); };
+END

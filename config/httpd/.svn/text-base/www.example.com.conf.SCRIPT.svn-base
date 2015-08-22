@@ -1,0 +1,25 @@
+# Rewrite example.com -> www.example.com. Works for both http and https
+
+  ################################
+  # START BASIC CONFIG           #
+  ################################
+<VirtualHost *:443>       //* if you use default 443 port, comment out /etc/httpd/conf.d/ssl.conf's virtual host configure
+    SSLEngine On
+    SSLCertificateFile /etc/pki/tls/certs/$CUSTOMER_WEBSITE_NAME.crt      //* certificate file
+    SSLCertificateKeyFile /etc/pki/tls/private/$CUSTOMER_WEBSITE_NAME.key //* private key file
+    ServerName $CUSTOMER_WEBSITE_NAME
+    DocumentRoot /var/www/$CUSTOMER_WEBSITE_NAME
+    LogLevel warn
+    ErrorLog logs/$CUSTOMER_WEBSITE_NAME/error_log
+    CustomLog logs/$CUSTOMER_WEBSITE_NAME/access_log combined
+</VirtualHost>
+
+
+<VirtualHost *:80>
+    ServerName $CUSTOMER_WEBSITE_NAME
+    DocumentRoot /var/www/$CUSTOMER_WEBSITE_NAME
+    LogLevel warn
+    ErrorLog logs/$CUSTOMER_WEBSITE_NAME/error_log
+    CustomLog logs/$CUSTOMER_WEBSITE_NAME/access_log combined
+</VirtualHost>
+

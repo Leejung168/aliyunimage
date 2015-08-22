@@ -1,0 +1,23 @@
+K 25
+svn:wc:ra_dav:version-url
+V 41
+/svn/config/!svn/ver/116/trunk/Keepalived
+END
+MASTER_keepalive.conf
+K 25
+svn:wc:ra_dav:version-url
+V 63
+/svn/config/!svn/ver/116/trunk/Keepalived/MASTER_keepalive.conf
+END
+check_my_content.sh
+K 25
+svn:wc:ra_dav:version-url
+V 61
+/svn/config/!svn/ver/101/trunk/Keepalived/check_my_content.sh
+END
+BACKUP_keepalive.conf
+K 25
+svn:wc:ra_dav:version-url
+V 63
+/svn/config/!svn/ver/116/trunk/Keepalived/BACKUP_keepalive.conf
+END

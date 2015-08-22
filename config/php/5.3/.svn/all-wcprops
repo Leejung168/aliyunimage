@@ -1,0 +1,23 @@
+K 25
+svn:wc:ra_dav:version-url
+V 38
+/svn/config/!svn/ver/166/trunk/php/5.3
+END
+php.ini
+K 25
+svn:wc:ra_dav:version-url
+V 46
+/svn/config/!svn/ver/131/trunk/php/5.3/php.ini
+END
+www.conf
+K 25
+svn:wc:ra_dav:version-url
+V 47
+/svn/config/!svn/ver/166/trunk/php/5.3/www.conf
+END
+php-fpm.conf
+K 25
+svn:wc:ra_dav:version-url
+V 51
+/svn/config/!svn/ver/131/trunk/php/5.3/php-fpm.conf
+END

@@ -1,0 +1,47 @@
+K 25
+svn:wc:ra_dav:version-url
+V 37
+/svn/config/!svn/ver/209/trunk/Apache
+END
+50x.html
+K 25
+svn:wc:ra_dav:version-url
+V 46
+/svn/config/!svn/ver/200/trunk/Apache/50x.html
+END
+www.example.com.conf
+K 25
+svn:wc:ra_dav:version-url
+V 58
+/svn/config/!svn/ver/209/trunk/Apache/www.example.com.conf
+END
+www.example.com.conf.SCRIPT.tmp
+K 25
+svn:wc:ra_dav:version-url
+V 68
+/svn/config/!svn/ver/73/trunk/Apache/www.example.com.conf.SCRIPT.tmp
+END
+www.example.com.conf.SCRIPT
+K 25
+svn:wc:ra_dav:version-url
+V 64
+/svn/config/!svn/ver/49/trunk/Apache/www.example.com.conf.SCRIPT
+END
+httpd.conf.tmp
+K 25
+svn:wc:ra_dav:version-url
+V 52
+/svn/config/!svn/ver/118/trunk/Apache/httpd.conf.tmp
+END
+httpd.conf
+K 25
+svn:wc:ra_dav:version-url
+V 48
+/svn/config/!svn/ver/118/trunk/Apache/httpd.conf
+END
+404.html
+K 25
+svn:wc:ra_dav:version-url
+V 46
+/svn/config/!svn/ver/200/trunk/Apache/404.html
+END

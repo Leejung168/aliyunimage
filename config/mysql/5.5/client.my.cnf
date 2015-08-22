@@ -1,0 +1,8 @@
+[client]
+# user={{ item.user | default('root') }}
+user=
+
+# password={{ item.pass | default(mysql_root_pass) }}
+password=
+
+host=localhost

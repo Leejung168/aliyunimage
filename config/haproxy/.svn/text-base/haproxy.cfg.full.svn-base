@@ -1,0 +1,919 @@
+#---------------------------------------------------------------------
+# Example configuration for a possible web application.  See the
+# full configuration options online.
+#
+#   http://haproxy.1wt.eu/download/1.4/doc/configuration.txt
+#
+
+#---------------------------------------------------------------------------------------------------------
+# Global settings
+#---------------------------------------------------------------------------------------------------------
+  ### ###    ###  ####    #   ###   
+ #  #  #    #   #  #  #   #    #    
+#      #    #   #  #  #   ##   #    
+#      #    #   #  ###   # #   #    
+#  ### #    #   #  #  #  # #   #    
+#   #  #    #   #  #  #  ####  #    
+ #  #  #   ##   #  #  #  #  #  #   #
+  ##  ###### ###  ####  ##  ########
+global
+    # [ Process management and security ]
+
+    chroot 	/usr/share/haproxy	# - make it very hard for the attacker to exploit the system
+
+    log         127.0.0.1 local3 notice # - should add filter in the syslog-ng
+					#   destination d_haproxy { file("/var/log/haproxy.log"); };
+					#   filter f_haproxy { facility(local3) and level(notice); };
+					#   log { source(s_sys); filter(f_haproxy); destination(d_haproxy); };
+					#   source s_sys {
+					#      udp(ip(0.0.0.0) port(514));
+					#   };
+
+    daemon				# - the recommended mode
+
+    user        haproxy			# - running user
+
+    group       haproxy			# - running group
+
+    pidfile     /var/run/haproxy.pid	# - must be accessible to the user
+
+    nbproc   	1 			# - Number of processes
+
+    stats socket  /tmp/haproxy		# - easy for use socat for zabbix
+
+    stats maxconn 20			# - default is 10
+
+    #	stats maxconn 			# - default is 10s
+
+    #	ulimit-n			# - default is automatically
+
+    node 	master_loadbalance1	# - for HA , easily know which server is working
+
+    description srv-example-lb1		# - insert to the status page
+
+
+    # [ Performance tuning ]
+
+    maxconn     4096 			# - default is 4096 ,limit for simultaneous connections
+
+    #	maxpipes			# - The default value is maxconn/4
+
+    nosplice				# - see also "option splice-auto" ,which easier,Most versions between
+					#   2.6.25 and 2.6.28 are buggy and will forward corrupted data
+
+    spread-checks 3			# - it becomes possible to add
+					#   some randomness in the check interval between 0 and +/- 50%. A value between
+					#   2 and 5 seems to show good results. The default value remains at 0.
+
+    #	tune.bufsize			# - higher values allow some applications with very large cookies to work. The default value is 16384 and
+					#   can be changed at build time. It is strongly recommended not to change this from the default value
+
+    #	tune.maxaccept			# - This value is limited to 100 by default in single process mode. However, in
+					#   multi-process mode (nbproc > 1), it defaults to 8 so that when one process
+					#   wakes up, it does not take all incoming connections for itself and leaves a
+					#   part of them to other processes. Setting this value to -1 completely disables
+					#   the limitation. It should normally not be needed to tweak this value.
+
+    #	tune.maxpollevents		# - Sets the maximum amount of events that can be processed at once in a call to
+					#   the polling system. The default value is adapted to the operating system. 
+
+    #	tune.maxrewrite <number>	# - Sets the reserved buffer space to this size in bytes. It is generally wise to set it
+					#   to about 1024. It is automatically readjusted to half of bufsize if it is
+					#   larger than that. This means you don't have to worry about it when changing
+					#   bufsize.
+
+    #	tune.rcvbuf.client <number>	# - lets the kernel autotune this value depending on the amount of available memory.
+
+    #   tune.rcvbuf.server <number> 	# - lets the kernel autotune this value depending on the amount of available memory.
+
+    #	tune.sndbuf.client <number>     # - lets the kernel autotune this value depending on the amount of available memory.
+
+    #	tune.sndbuf.server <number>     # - lets the kernel autotune this value depending on the amount of available memory.
+
+    # [ Debugging ]
+
+    #	debug				# - Enables debug mode which dumps to stdout all exchanges, and disables forking
+					#   into background. It is the equivalent of the command-line argument "-d". It
+					#   should never be used in a production configuration since it may prevent full
+					#   system startup.
+
+    #	quiet				# - Do not display any message during startup. It is equivalent to the command-
+					#   line argument "-q".
+
+#---------------------------------------------------------------------------------------------------------
+# common defaults that all the 'listen' and 'backend' sections will 
+# use if not designated in their block
+#---------------------------------------------------------------------------------------------------------
+####  ##### #####   #   ##  #####   ##### 
+ #  #  #  #  #  #   #    #  #  #    # # # 
+ #  #  # #   # #    ##   #  #  #      #   
+ #  #  ###   ###   # #   #  #  #      #   
+ #  #  # #   # #   # #   #  #  #      #   
+ #  #  #     #     ####  #  #  #      #   
+ #  #  #  #  #     #  #  #  #  #   #  #   
+####  ##### ###   ##  ##  ##  ###### ### 
+defaults
+    # backlog <conns>			# - By default, HAProxy passes the frontend's maxconn value
+					#   to the listen() syscall.
+
+    balance	roundrobin		
+    # option  ssl-hello-chk
+    # balance source
+					# - check the manual
+
+    cookie  SERVERID insert indirect nocache 
+    # cookie SERVERID insert postonly indirect
+    # cookie JSESSIONID prefix
+					# - cookie <name> [ rewrite | insert | prefix ] [ indirect ] [ nocache ]
+					#   [ postonly ] [ domain <domain> ]*
+					#   <name>    Special care should be taken to choose a name which does not
+					#   	      conflict with any likely application cookie.
+					#
+					#   rewrite:  Unless the application behaviour is very complex and/or broken,
+					#             it is advised not to start with this mode for new deployments
+					# 	      this mode only works in HTTP close mode. 
+					#
+					#   insert:   The cookie will only be a session
+					#             cookie and will not be stored on the client's disk. Due to
+					#             caching effects, it is generally wise to add the "indirect" and
+					#             "nocache" or "postonly" keywords
+					#
+					#   prefix:   some specific environments where the client
+					#             does not support more than one single cookie and the application already needs it. (Like Mobile)
+					#	      Since all requests and responses are subject to being modified,this mode requires the HTTP close mode.
+					#
+					#   three of them above are conflict
+ 					#
+					#   indirect: When this option is specified in insert mode, cookies will only
+					#             be added when the server was not reached after a direct access.
+					#             In all cases, when the "indirect" option is used in
+					#             insert mode, the cookie is always removed from the requests
+					#             transmitted to the server. The persistence mechanism then becomes
+					#             totally transparent from the application point of view.
+					#
+					#   nocache:  This option is recommended in conjunction with the insert mode
+					#             This is important because if all persistence cookies are added on a cacheable home page for
+					#             instance,leading to one server receiving much more traffic than others.
+					#
+					#   postonly: It is an alternative to the "nocache", because POST responses are not cacheable, so
+					#             this ensures that the persistence cookie will never get cached.
+					#             Since most sites do not need any sort of persistence before the
+					#             first POST which generally is a login request, this is a very
+					#             efficient method to optimize caching without risking to find a
+					#             persistence cookie in the cache.
+					#
+					#   domain    This option allows to specify the domain at which a cookie is
+					#             inserted. Some browsers might have small limits on the number of
+					#             domains, sending 10 domains to MSIE 6 or Firefox 2 works as expected.
+
+    default-server inter 2s fastinter 1s downinter 5s slowstart 60s rise 2 fall 5 weight 30
+					# - default value if not set:
+					#   fall 3    		a server will be considered as dead after <count> consecutive unsuccessful health checks
+					#   error-limit 10 	specifies the number of consecutive errors that triggers event selected by the "on-error" option. 
+					#
+					#   inter 2000
+					#   fastinter <delay>
+					#   downinter <delay>
+					#		        The "inter" parameter sets the interval between two consecutive health checks
+					#	     	        to <delay> milliseconds. If left unspecified, the delay defaults to 2000 ms.
+					#	    	        It is also possible to use "fastinter" and "downinter" to optimize delays
+					#	   	        between checks depending on the server state :
+					#
+					#		     Server state            |             Interval used
+					#	     ---------------------------------+-----------------------------------------
+					#	      UP 100% (non-transitional)      | "inter"
+					#	     ---------------------------------+-----------------------------------------
+					#	      Transitionally UP (going down), |
+					#	      Transitionally DOWN (going up), | "fastinter" if set, "inter" otherwise.
+					#	      or yet unchecked.               |
+					#	     ---------------------------------+-----------------------------------------
+					#	      DOWN 100% (non-transitional)    | "downinter" if set, "inter" otherwise.
+					#	     ---------------------------------+-----------------------------------------
+					#
+					#   maxconn 0 		The default value is "0" which means unlimited.
+					#
+					#   maxqueue 0		If this limit is reached, next
+					#		        requests will be redispatched to other servers instead of indefinitely
+					#		        waiting to be served. This will break persistence but may allow people to
+					#		        quickly re-log in when the server they try to connect to is dying.	
+					#
+					#   minconn 0		When the "minconn" parameter is set, the maxconn limit becomes a dynamic
+					#		        limit following the backend's load. The server will always accept at least
+					#		        <minconn> connections, never more than <maxconn>, and the limit will be on
+					#		        the ramp between both values when the backend has less than <fullconn>
+					#		        concurrent connections
+					#
+					#   on-error fail-check Select what should happen when enough consecutive errors are detected.
+					#		        Currently, four modes are available:
+					#		        - fastinter: force fastinter
+					#		        - fail-check: simulate a failed check, also forces fastinter (default)
+					#		        - sudden-death: simulate a pre-fatal failed health check, one more failed
+					#		          check will mark a server down, forces fastinter
+					#		        - mark-down: mark the server immediately down and force fastinter
+					#
+					#   rise 2	        a server will be considered as operational after <count> consecutive successful health checks.
+					#
+					#   slowstart 0		indicates after how long a server which has just come back up will run at full speed. 
+					#			The slowstart never applies when haproxy starts. It only applies when a server has been previously seen as failed.
+					#   weight 1		the higher the weight, the higher the load. range 1~254
+    
+    # use_backend     dynamic  if  url_dyn
+    # use_backend     static   if  url_css url_img extension_img
+    # default_backend dynamic
+					# - we are not use frontend and backend mode, because our customer's application is not so complex , if needed , check section 7 for acl
+					
+    # errorfile 400 /usr/share/doc/haproxy-1.4.4/errorfiles/400.http
+    # errorloc302 <code> <url>
+    # errorloc303 <code> <url>
+
+    # fullconn 0			# - Specify at what backend load the servers will reach their maxconn
+
+    # grace <time>			# - Maintain a proxy operational for some time after a soft stop Note that currently, there is very little benefit in using this parameter,
+					#   and it may in fact complicate the soft-reconfiguration process more than simplify it.
+
+    # hash-type map-based		# - The default hash type is "map-based" and is recommended for most usages.
+
+    http-check disable-on-404		# - Enable a maintenance mode upon HTTP/404 response to health-checks, option only works in conjunction with the "httpchk" option.
+					#   (NOT mentioned if it was set by default)
+
+    http-check send-state		# - Example of a header received by the application server :
+					#   >>>  X-Haproxy-Server-State: UP 2/3; name=bck/srv2; node=lb1; weight=1/2; \
+					#   scur=13/22; qcur=0
+
+    log		global    	        # - should be used when the instance's logging parameters are the same as the global ones. This is the most common usage.
+					#   log <address> <facility> [<level> [<minlevel>]]
+					#   log 127.0.0.1:514 local0 notice         # only send important events
+					#   log 127.0.0.1:514 local0 notice notice  # same but limit output level
+
+    maxconn 4096			# - This value should not exceed the global maxconn. Also, keep in mind that a connection contains two buffers
+					#   of 8kB each, as well as some other data resulting in about 17 kB of RAM being
+					#   consumed per established connection. That means that a medium system equipped
+					#   with 1GB of RAM can withstand around 40000-50000 concurrent connections if properly tuned.
+
+    mode      http			# - tcp       The instance will work in pure TCP mode.no layer 7
+				        #	      examination will be performed.
+			                #   http      The instance will work in HTTP mode. The client request will be
+			                #	      analyzed in depth before connecting to any server.
+					#   health    This mode is deprecated and should not be used anymore as
+				        #     	      it is possible to do the same and even better by combining TCP or
+				        #	      HTTP modes with the "monitor" keyword.
+
+    option abortonclose			# - This considerably reduces the queue size and the load
+					#   on saturated servers when users are tempted to click on STOP, which in turn
+					#   reduces the response time for other users.
+
+    option accept-invalid-http-request 	# - This option should never be enabled by default as it hides application bugs
+					#   and open security breaches. It should only be deployed after a problem has been confirmed.
+					#   When this option is enabled, erroneous header names will still be accepted in
+					#   requests, but the complete request will be captured in order to permit later
+					#   analysis using the "show errors" request on the UNIX stats socket. Doing this
+					#   also helps confirming that the issue has been solved.
+
+    option accept-invalid-http-response # - Familiar with "option accept-invalid-http-request"
+
+    option allbackups			# - By default, the first operational backup server gets all traffic when normal
+					#   servers are all down. Sometimes, it may be preferred to use multiple backups
+					#   at once, because one will not be enough.
+
+    # option checkcache			# - Some high-level frameworks set application cookies everywhere and do not
+					#   always let enough control to the developer to manage how the responses should
+					#   be cached. When a session cookie is returned on a cacheable object, there is a
+					#   high risk of session crossing or stealing between users traversing the same
+					#   caches.
+					#   Due to the high impact on the application, the application should be tested
+					#   in depth with the option enabled before going to production. It is also a
+					#   good practice to always activate it during tests, even if it is not used in
+					#   production, as it will report potentially dangerous application behaviours.
+
+    option clitcpka    			# - When there is a firewall or any session-aware component between a client and
+					#   a server, and when the protocol involves very long sessions with long idle
+					#   periods (eg: remote desktops), there is a risk that one of the intermediate
+					#   components decides to expire a session which has remained idle for too long.
+					# 
+					#   Enabling socket-level TCP keep-alives makes the system regularly send packets
+					#   to the other end of the connection, leaving it active. The delay between
+					#   keep-alive probes is controlled by the system only and depends both on the
+					#   operating system and its tuning parameters.
+
+    # option contstats			# - Enable continuous traffic statistics updates. By default, counters used for statistics calculation
+					#   are incremented only when a session finishes.
+					#   it is not enabled by default, as it has small performance impact (~0.5%).
+
+    # option dontlog-normal		# - It is strongly discouraged to use this option as most of the time, the key to
+					#   complex issues is in the normal logs which will not be logged here. If you
+					#   need to separate logs, see the "log-separate-errors" option instead.
+   
+    # option dontlognull		# - It is generally recommended not to use this option in uncontrolled
+					#   environments (eg: internet), otherwise scans and other malicious activities would not be logged.
+
+    # option forceclose			# - Enable or disable active connection closing after response is transferred.
+					#   Some HTTP servers do not necessarily close the connections when they receive
+					#   the "Connection: close" set by "option httpclose", and if the client does not
+					#   close either, then the connection remains open till the timeout expires. This
+					#   causes high number of simultaneous connections on the servers and shows high
+					#   global session times in the logs.
+					# 
+					#   This option may also be combined with "option http-pretend-keepalive", which
+					#   will disable sending of the "Connection: close" header, but will still cause
+					#   the connection to be closed once the whole response is received.
+   
+    option forwardfor except 127.0.0.1  # - Since HAProxy works in reverse-proxy mode, the servers see its IP address as
+					#   their client address. This is sometimes annoying when the client's IP address
+					#   is expected in server logs. To solve this problem, the well-known HTTP header
+					#   "X-Forwarded-For" may be added by HAProxy to all requests sent to the server.
+					#   This header contains a value representing the client's IP address.
+					#   The keyword "header" may be used to supply a different header name to replace
+					#   the default "X-Forwarded-For". This can be useful where you might already
+					#   have a "X-Forwarded-For" header from a different application (eg: stunnel)
+					     # httpd.conf for log , and don't log health check 
+					     #      LogFormat "%{X-Forwarded-For}i %l %u %t \"%r\" %>s %b " combined
+					     #      CustomLog /var/log/httpd/access_log combined
+					     #      SetEnvIf Request_URI "^/check\.txt$" dontlog
+					     #      LogLevel warn
+					     #      ErrorLog /var/log/httpd/vhost_error.log
+					     #      CustomLog /var/log/httpd/vhost_access.log combined env=!dontlog
+
+
+    # option http-pretend-keepalive	# - Define whether haproxy will announce keepalive to the server or not
+					#   It is recommended not to enable this option by default, because most servers
+					#   will more efficiently close the connection themselves after the last packet, and release its buffers slightly earlier. 
+    option http-server-close		# - This mode enables HTTP connection-close mode on the server side while keeping
+					#   the ability to support HTTP keep-alive and pipelining on the client side.
+
+    # option http-use-proxy-header	# - Also, when this option is set, a request which requires authentication will
+					#   automatically switch to use proxy authentication headers if it is itself a
+					#   proxied request. That makes it possible to check or enforce authentication in
+					#   front of an existing proxy.
+					#   This option should normally never be used, except in front of a proxy.
+
+    # - default "OPTIONS" method is used, as it generally requires low server processing and is easy to filter out from the logs.
+    #   defaults version "HTTP/1.0"
+    #   default uri " / "
+    #   e.g. option httpchk <method><uri><version> 
+    #   option httpchk OPTIONS * HTTP/1.1\r\nHost:\ www   # 1.4.4 manual
+    #   option httpchk HEAD /index.html HTTP/1.1          # In architecture
+    #   NGINX does not support OPTIONS  
+    #   Note: UP with load-balancing disabled is reported as "NOLB". service down will be marked "DOWN"
+    option httpchk GET /check.html HTTP/1.1\r\nHost:\ www.example.com   # we should use jsp or php instead to check internal function
+
+    # option httpclose			# - If "option forceclose" is specified too, it has precedence over "httpclose".
+					#   If "option http-server-close" is enabled at the same time as "httpclose", it
+					#   basically achieves the same result as "option forceclose".
+					#   As stated in section 1, HAProxy does not yes support the HTTP keep-alive
+					#   mode. So by default, if a client communicates with a server in this mode, it
+					#   will only analyze, log, and process the first request of each connection. To
+					#   workaround this limitation, it is possible to specify "option httpclose".
+
+    option httplog			# - By default, the log output format is very poor, as it only contains the
+					#   source and destination addresses, and the instance name. By specifying
+					#   "option httplog", each log line turns into a much richer format including,
+					#   but not limited to, the HTTP request, the connection timers, the session
+					#   status, the connections numbers, the captured headers and cookies, the
+					#   frontend, backend and server name, and of course the source address and ports.
+
+    # option http_proxy			# - It sometimes happens that people need a pure HTTP proxy which understands
+					#   basic proxy requests without caching nor any fancy feature.
+   
+    # option independant-streams	# - Doing so will typically break large HTTP posts from slow lines, so use it with caution.
+    
+    option log-health-checks		# - Enable health checks logging so it possible to check for example what
+					#   was happening before a server crash.
+
+    option log-separate-errors		# - When the option "log-separate-errors" is used, connections which experience errors, timeouts,
+					#   retries, redispatches or HTTP status codes 5xx will see their syslog level
+					#   raised from "info" to "err". This will help a syslog daemon store the log in a separate file. 
+
+    # option logasap			# - The only missing information in the logs will be
+					#   the total number of bytes which will indicate everything except the amount
+					#   of data transferred, and the total time which will not take the transfer
+					#   time into account.    In such a situation, it's a good practice to capture the
+					#   "Content-Length" response header so that the logs at least indicate how many
+					#   bytes are expected to be transferred.
+
+    # option nolinger			# - forces the system to immediately remove any socket's pending data on close.
+					#   This usually has side effects such as increased number of TCP resets due to old retransmits
+					#   getting immediately rejected. Some firewalls may sometimes complain about this too.
+					# 
+					#   For this reason, it is not recommended to use this option when not absolutely
+					#   needed. You know that you need it when you have thousands of FIN_WAIT1
+					#   sessions on your system (TIME_WAIT ones do not count).
+
+    # option originalto except 127.0.0.1# - Enable insertion of the X-Original-To header to requests sent to servers
+					#   Since HAProxy can work in transparent mode, every request from a client can
+					#   be redirected to the proxy and HAProxy itself can proxy every request to a
+					#   complex SQUID environment and the destination host from SO_ORIGINAL_DST will be lost.
+
+    # option persist			# - It is recommended to use "option redispatch" in conjunction
+					#   with this option so that in the event it would not be possible to connect to
+					#   the server at all (server definitely dead), the client would finally be
+					#   redirected to another valid server.
+					#   After "retries", it will be served normally
+
+    option redispatch			# - Specifying "option redispatch" will allow the proxy to break their
+					#   persistence and redistribute them to a working server.
+
+    # option smtpchk			# - Use SMTP health checks for server testing
+
+    option socket-stats			# - Enable or disable collecting & providing separate statistics for each socket.
+
+    # option splice-auto		# - Enable or disable automatic kernel acceleration on sockets in both directions
+
+    # option splice-request		# - Enable or disable automatic kernel acceleration on sockets for requests This option requires splicing to be enabled at
+					#   compile time, and may be globally disabled with the global option "nosplice".
+
+    # option splice-response   		# - Enable or disable automatic kernel acceleration on sockets for responses This option requires splicing to be enabled at
+                                        #   compile time, and may be globally disabled with the global option "nosplice".
+
+    option srvtcpka			# - Enable or disable the sending of TCP keepalive packets on the server side See also : "option clitcpka", "option tcpka"
+
+    # option ssl-hello-chk		# - Use SSLv3 client hello health checks for server testing
+
+    # option tcp-smart-accept		# - Enable or disable the saving of one ACK packet during the accept sequence
+					#   For instance, it can make sense with some services
+					#   such as SMTP where the server speaks first. It is recommended to avoid forcing this option in a defaults section.
+
+    option tcp-smart-connect		# - Enable or disable the saving of one ACK packet during the connect sequence
+					#   It only makes sense to enable it with protocols where the client speaks first
+					#   such as HTTP. In other situations, if there is no data to send in place of
+					#   the ACK, a normal ACK is sent.
+
+    option tcpka			# - Enable or disable the sending of TCP keepalive packets on both sides
+
+    # option transparent		# - Enable client-side transparent proxying
+					#   This option was introduced in order to provide layer 7 persistence to layer 3
+					#   load balancers. 
+
+    # persist rdp-cookie		# - Enable RDP cookie-based persistence
+					#   This is the same requirement as with the "rdp-cookie"
+					#   load-balancing method. Thus it is highly recommended to put all statements in a single "listen" section.
+
+    # rate-limit sessions <rate>	# - Set a limit on the number of new sessions accepted per second on a frontend
+					#   This feature is particularly efficient at blocking connection-based attacks or service abuse on fragile servers.
+
+    retries 3				# - Set the number of retries to perform on a server after a connection failure
+
+    timeout check 10s			# - Set additional check timeout, but only after a connection has been already established.
+					#   In most cases check request is much simpler and faster to handle than normal
+					#   requests and people may want to kick out laggy servers so this timeout should
+					#   be smaller than "timeout server".
+
+    timeout client 60s			# - Set the maximum inactivity time on the client side.
+					#   it is highly recommended that the client timeout remains equal to the server timeout in order to avoid complex
+					#   situations to debug.
+					
+    timeout connect 60s  		# - Set the maximum time to wait for a connection attempt to a server to succeed.
+					#   If the server is located on the same LAN as haproxy, the connection should be
+					#   immediate (less than a few milliseconds). Anyway, it is a good practice to
+					#   cover one or several TCP packet losses by specifying timeouts that are
+					#   slightly above multiples of 3 seconds (eg: 4 or 5 seconds). By default, the
+					#   connect timeout also presets both queue and tarpit timeouts to the same value
+					#   if these have not been specified.
+					
+    timeout http-keep-alive 60s		# - Set the maximum allowed time to wait for a new HTTP request to appear
+					#   In general it is optimal to set this value to a few tens to hundreds of
+					#   milliseconds, to allow users to fetch all objects of a page at once but
+					#   without waiting for further clicks. 
+
+    timeout http-request 60s		# - Set the maximum allowed time to wait for a complete HTTP request
+					#   Generally it is enough to set it to a few seconds, as most clients send the
+					#   full request immediately upon connection. Add 3 or more seconds to cover TCP
+					#   retransmits but that's all. Setting it to very low values (eg: 50 ms) will
+					#   generally work on local networks as long as there are no packet losses. This
+					#   will prevent people from sending bare HTTP requests using telnet.
+
+    timeout queue 60s			# - Set the maximum time to wait in the queue for a connection slot to be free
+
+    timeout server 60s			# - Set the maximum inactivity time on the server side.
+					#   it is a good practice to cover at least one or several TCP
+					#   packet losses by specifying timeouts that are slightly above multiples of 3
+					#   seconds (eg: 4 or 5 seconds minimum).
+  
+    timeout tarpit 10s			# - Set the duration for which tarpitted connections will be maintained
+					#   If unspecified, the same value as the backend's connection timeout
+					#   ("timeout connect") is used, for backwards compatibility with older versions with no "timeout tarpit" parameter.
+
+#---------------------------------------------------------------------------------------------------------
+# "listen" section defines a complete proxy with its frontend and backend parts combined in one section. It is generally useful for TCP-only traffic.
+#--------------------------------------------------------------------- ------------------------------------
+###   #####  #### ##### ##### ## ###
+ #      #   #   # # # #  #  #  #  # 
+ #      #   #       #    # #   ## # 
+ #      #    ##     #    ###   ## # 
+ #      #      #    #    # #   # ## 
+ #      #       #   #    #     # ## 
+ #   #  #   #   #   #    #  #  #  # 
+########### ####   ###  ##### ### # 
+
+listen web-pool1 0.0.0.0:80
+    mode http
+    balance     roundrobin
+    option http-server-close
+    option abortonclose 
+    no option dontlognull
+    option httplog
+    option log-health-checks
+    option redispatch
+    id webpool1
+
+    #  When an application cookie is defined in a backend, HAProxy will check when
+    #  the server sets such a cookie, and will store its value in a table, and
+    #  associate it with the server's identifier. CNC think it is alternative with haproxy cookie 
+    # capture cookie PHPSESSID len 50
+    # capture request header Cookie len 200
+    # capture request header Host len 50
+    # capture request header Referer len 200
+    # capture request header User-Agent len 150
+    # capture request header Custom-Cookie len 15
+    # appsession PHPSESSID len 32 timeout 3600000  
+
+    cookie SERVERID insert nocache indirect
+
+    # id <value>			# - An unused ID will automatically be assigned if unset. The first assigned
+					#   value will be 1. This ID is currently only returned in statistics.
+
+    # - default "OPTIONS" method is used, as it generally requires low server processing and is easy to filter out from the logs.
+    #   defaults version "HTTP/1.0"
+    #   default uri " / "
+    #   e.g. option httpchk <method><uri><version> 
+    #   option httpchk OPTIONS * HTTP/1.1\r\nHost:\ www   # 1.4.4 manual
+    #   option httpchk HEAD /index.html HTTP/1.1          # In architecture
+    #   NGINX does not support OPTIONS  
+    #   Note: UP with load-balancing disabled is reported as "NOLB". service down will be marked "DOWN"
+    option httpchk GET /check.html HTTP/1.1\r\nHost:\ www.example.com   # we should use jsp or php instead to check internal function
+
+     #server  test4DL 10.1.100.72:80 weight 2 cookie B check inter 1000 rise 2 fall 5 maxqueue 200 
+     server  xentest1 10.1.100.30:80 cookie web1 check
+     server  test4DL 10.1.100.72:80 cookie web2 check
+     server  rpmbuid64 10.1.100.71:80 cookie web3 check
+
+     # capture cookie ASPSESSION len 32
+     # capture request header X-Forwarded-For len 15
+     # capture response header Content-length len 9
+                                         # - useful for code debug
+
+     # stick match          
+     # stick on             
+     # stick store-request  
+     # stick-table     
+					# - Some protocols or applications require complex stickiness rules and cannot
+					#   always simply rely on cookies nor hashing. The "stick match" statement
+					#   describes a rule to extract the stickiness criterion from an incoming request
+					#   or connection. See section 7 for a complete list of possible patterns and transformation rules.
+					#   e.g.# Use cookie persistence for HTTP, and stick on source address for HTTPS as
+    					#   well as HTTP without cookie. Share the same table between both accesses.
+			  	     	#   stick on src table https
+     # ############# #  
+     # ACL key words #
+     # ############# #
+	     # redirect       
+	     # reqadd         
+	     # reqallow       
+	     # reqdel         
+	     # reqdeny        
+	     # reqiallow      
+	     # reqidel        
+	     # reqideny       
+	     # reqipass       
+	     # reqirep        
+	     # reqisetbe      
+	     # reqitarpit     
+	     # reqpass        
+	     # reqrep         
+	     # reqsetbe       
+	     # reqtarpit      
+	     # retries        
+	     # rspadd         
+	     # rspdel         
+	     # rspdeny        
+	     # rspidel        
+	     # rspideny       
+	     # rspirep        
+	     # rsprep     
+
+	# ####### #
+	# Example:#
+	# ####### # 
+					# -listen  appli1-rewrite 0.0.0.0:10001
+					# -        cookie  SERVERID rewrite
+					# -        balance roundrobin
+					# -        server  app1_1 192.168.34.23:8080 cookie app1inst1 check inter 2000 rise 2 fall 5
+					# -        server  app1_2 192.168.34.32:8080 cookie app1inst2 check inter 2000 rise 2 fall 5
+					# -        server  app1_3 192.168.34.27:8080 cookie app1inst3 check inter 2000 rise 2 fall 5
+					# -        server  app1_4 192.168.34.42:8080 cookie app1inst4 check inter 2000 rise 2 fall 5
+					# -
+					# -listen  appli2-insert 0.0.0.0:10002
+					# -        option  httpchk
+					# -        balance roundrobin
+					# -        cookie  SERVERID insert indirect nocache
+					# -        server  inst1 192.168.114.56:80 cookie server01 check inter 2000 fall 3
+					# -        server  inst2 192.168.114.56:81 cookie server02 check inter 2000 fall 3
+					# -        capture cookie vgnvisitor= len 32
+					# -
+					# -        option  httpclose               # disable keep-alive
+					# -        rspidel ^Set-cookie:\ IP=       # do not let this cookie tell our internal IP address
+					# -
+					# -listen  appli3-relais 0.0.0.0:10003
+					# -        dispatch 192.168.135.17:80
+					# -
+					# -listen  appli4-backup 0.0.0.0:10004
+					# -        option  httpchk /index.html
+					# -        option  persist
+					# -        balance roundrobin
+					# -        server  inst1 192.168.114.56:80 check inter 2000 fall 3
+					# -        server  inst2 192.168.114.56:81 check inter 2000 fall 3 backup
+					# -
+					# -listen  ssl-relay 0.0.0.0:8443
+					# -        option  ssl-hello-chk
+					# -        balance source
+					# -        server  inst1 192.168.110.56:443 check inter 2000 fall 3
+					# -        server  inst2 192.168.110.57:443 check inter 2000 fall 3
+					# -        server  back1 192.168.120.58:443 backup
+					# -
+					# -listen  appli5-backup 0.0.0.0:10005
+					# -        option  httpchk *
+					# -        balance roundrobin
+					# -        cookie  SERVERID insert indirect nocache
+					# -        server  inst1 192.168.114.56:80 cookie server01 check inter 2000 fall 3
+					# -        server  inst2 192.168.114.56:81 cookie server02 check inter 2000 fall 3
+					# -        server  inst3 192.168.114.57:80 backup check inter 2000 fall 3
+					# -        capture cookie ASPSESSION len 32
+					# -        srvtimeout      20000
+					# -
+					# -        option  httpclose               # disable keep-alive
+					# -        option  checkcache              # block response if set-cookie & cacheable
+					# -
+					# -        rspidel ^Set-cookie:\ IP=       # do not let this cookie tell our internal IP address
+					# -
+					# -        errorloc        502     http://192.168.114.58/error502.html
+					# -        errorfile       503     /etc/haproxy/errors/503.http
+
+
+listen ssl-pool1 0.0.0.0:443
+    mode tcp
+    balance     source
+
+    # --------------------------------------------
+    # - CNC recommend setting
+    # --------------------------------------------
+    http-check disable-on-404	
+
+    http-check send-state	
+
+    log		global    	        
+
+    maxconn 4096			
+
+    no option dontlognull
+
+    option abortonclose		
+
+    option allbackups		
+    
+    option log-health-checks		
+
+    option log-separate-errors				
+
+    option tcp-smart-connect		
+
+    option tcpka			
+
+    # - Specifying "option redispatch" will allow the proxy to break their
+    #   persistence and redistribute them to a working server.
+    option redispatch
+
+    retries 3				
+
+    timeout check 10s			
+
+    timeout client 7s			
+					
+    timeout connect 3s  		
+					
+    timeout http-keep-alive 30s		
+
+    timeout http-request 10s		
+
+    timeout queue 30s			
+
+    timeout server 7s			
+  
+    timeout tarpit 10s
+
+    # --------------------------------------------
+    # - Health check
+    # -------------------------------------------- 
+    option  ssl-hello-chk
+
+    default-server inter 2s fastinter 1s downinter 5s slowstart 60s rise 2 fall 5 weight 30
+
+    server  srv-redatoms-web1 10.252.30.96:443 check maxconn 2000
+    server  srv-redatoms-web2 10.255.107.143:443 check maxconn 2000 
+    
+
+listen monitor1 0.0.0.0:10443
+    mode http
+    balance     roundrobin
+
+    stats enable
+    stats uri /nc-haproxy              # - default is haproxy?stats
+    stats realm Haproxy\ statistics    # - Enable statistics and set authentication realm
+    stats show-desc RedAtoms srv-redatoms-lb1 status page
+    stats auth ncadmin:ChinaNetCloud
+    stats refresh 30s
+    stats show-legends                 # - Enable reporting additional informations on the statistics page
+
+    timeout check 10s
+
+    timeout client 7s
+
+    timeout connect 3s
+
+    timeout http-keep-alive 30s
+
+    timeout http-request 10s
+
+    timeout queue 30s
+
+    timeout server 7s
+
+    timeout tarpit 10s
+
+#---------------------------------------------------------------------------------------------------------
+#difference between list and frontend + backends
+#---------------------------------------------------------------------------------------------------------
+##########          ##            ########    
+  ##    ##        ##  ##            ##    ##  
+  ##  ##          ##  ##            ##    ##  
+  ######          ########          ######    
+  ##  ##        ##  ##  ##          ##    ##  
+  ##            ##  ##  ##          ##    ##  
+  ##            ##    ##            ##    ##  
+######            ####  ####      ########    
+    # You could have performed the URL selection in the haproxy configuration using frontends and backends instead of listening to two
+    # different ports :
+    # 
+    #    frontend http
+    #	   bind :80
+    # 	   acl slow_mongrels path_beg /slow
+    # 	   acl fast_mongrels path_beg /main
+    #	   use_backend slow if slow_mongrels
+    #	   use_backend fast if fast_mongrels
+    # 	   default_backend fast
+    # 
+    #    backend fast
+    #      server a1 127.0.0.1:8010 weight 1 minconn 3 maxconn 6 check inter 20000
+    #      server a1 127.0.0.1:8010 weight 1 minconn 3 maxconn 6 check inter 20000
+    # 
+    # 	 backend slow
+    # 	   server b1 127.0.0.1:8050 weight 1 minconn 1 maxconn 3 check inter 40000
+    #      server b2 127.0.0.1:8051 weight 1 minconn 1 maxconn 3 check inter 40000
+    #      server b3 127.0.0.1:8052 weight 1 minconn 1 maxconn 3 check inter 40000
+    # 
+    # Etc… I think you get the idea. This is not yet documented
+    # in the architecture manual but it is in the configuration
+    # manual (check the ACL section) here : http://haproxy.1wt.eu/#docs
+
+#---------------------------------------------------------------------------------------------------------
+# main frontend which proxys to the backends
+#---------------------------------------------------------------------------------------------------------
+     #    frontend  main *:80
+     #      acl url_static       path_beg       -i /static /images /javascript /stylesheets
+     #      acl url_static       path_end       -i .jpg .gif .png .css .js
+     #   
+     #      use_backend static          if url_static
+     #      default_backend             test
+
+##---------------------------------------------------------------------------------------------------------
+## static backend for serving up images, stylesheets and such
+##---------------------------------------------------------------------------------------------------------
+     #    backend static
+     #      balance     roundrobin
+     #      server      static 127.0.0.1:4331 check
+
+#---------------------------------------------------------------------------------------------------------
+# round robin balancing between the various backends
+#---------------------------------------------------------------------------------------------------------
+     #    backend test
+     #      mode http
+     #      cookie SERVERID insert indirect
+     #      server app_bbs2 192.168.169.118:80 cookie app1inst2 check inter 2000 rise 2 fall 5
+     #    balance     roundrobin
+     #      balance url_param session_id check_post 64
+     #      server  xentest1 10.1.100.30:80 check
+     #      server  test4DL 10.1.100.72:80 check
+     #      server  rpmbuid64 10.1.100.71:80 check
+################
+# More Example #
+################
+# -listen  appli1-rewrite 0.0.0.0:10001
+# -        cookie  SERVERID rewrite
+# -        balance roundrobin
+# -        server  app1_1 192.168.34.23:8080 cookie app1inst1 check inter 2000 rise 2 fall 5
+# -        server  app1_2 192.168.34.32:8080 cookie app1inst2 check inter 2000 rise 2 fall 5
+# -        server  app1_3 192.168.34.27:8080 cookie app1inst3 check inter 2000 rise 2 fall 5
+# -        server  app1_4 192.168.34.42:8080 cookie app1inst4 check inter 2000 rise 2 fall 5
+# -
+# -listen  appli2-insert 0.0.0.0:10002
+# -        option  httpchk
+# -        balance roundrobin
+# -        cookie  SERVERID insert indirect nocache
+# -        server  inst1 192.168.114.56:80 cookie server01 check inter 2000 fall 3
+# -        server  inst2 192.168.114.56:81 cookie server02 check inter 2000 fall 3
+# -        capture cookie vgnvisitor= len 32
+# -
+# -        option  httpclose               # disable keep-alive
+# -        rspidel Set-cookie:\ IP=       # do not let this cookie tell our internal IP address
+# -
+# -listen  appli3-relais 0.0.0.0:10003
+# -        dispatch 192.168.135.17:80
+# -
+# -listen  appli4-backup 0.0.0.0:10004
+# -        option  httpchk /index.html
+# -        option  persist
+# -        balance roundrobin
+# -        server  inst1 192.168.114.56:80 check inter 2000 fall 3
+# -        server  inst2 192.168.114.56:81 check inter 2000 fall 3 backup
+# -
+# -listen  ssl-relay 0.0.0.0:8443
+# -        option  ssl-hello-chk
+# -        balance source
+# -        server  inst1 192.168.110.56:443 check inter 2000 fall 3
+# -        server  inst2 192.168.110.57:443 check inter 2000 fall 3
+# -        server  back1 192.168.120.58:443 backup
+# -
+# -listen  appli5-backup 0.0.0.0:10005
+# -        option  httpchk *
+# -        balance roundrobin
+# -        cookie  SERVERID insert indirect nocache
+# -        server  inst1 192.168.114.56:80 cookie server01 check inter 2000 fall 3
+# -        server  inst2 192.168.114.56:81 cookie server02 check inter 2000 fall 3
+# -        server  inst3 192.168.114.57:80 backup check inter 2000 fall 3
+# -        capture cookie ASPSESSION len 32
+# -        srvtimeout      20000
+# -
+# -        option  httpclose               # disable keep-alive
+# -        option  checkcache              # block response if set-cookie & cacheable
+# -
+# -        rspidel Set-cookie:\ IP=       # do not let this cookie tell our internal IP address
+# -
+# -        errorloc        502     http://192.168.114.58/error502.html
+# -        errorfile       503     /etc/haproxy/errors/503.http
+###############
+# ACL example #
+###############
+#       capture request  header Host           len 20
+#       capture request  header User-Agent     len 16
+#       capture request  header Content-Length len 10
+#       capture request  header Referer        len 20
+#       capture response header Content-Length len 10
+#
+#       # block any unwanted source IP addresses or networks
+#       acl forbidden_src src      0.0.0.0/7 224.0.0.0/3
+#       acl forbidden_src src_port 0:1023
+#       block if forbidden_src
+#
+#       # block requests beginning with http:// on wrong domains
+#       acl dangerous_pfx  url_beg -i http://
+#       acl valid_pfx      url_reg -i http://[^/]*1wt\.eu/
+#       block if dangerous_pfx !valid_pfx
+#
+#       # block apache chunk exploit, ...
+#       acl forbidden_hdrs hdr_sub(transfer-encoding) -i chunked
+#       acl forbidden_hdrs hdr_beg(host)              -i apache- localhost
+#
+#       # ... some HTTP content smugling and other various things
+#       acl forbidden_hdrs hdr_cnt(host) gt 1
+#       acl forbidden_hdrs hdr_cnt(content-length) gt 1
+#       acl forbidden_hdrs hdr_val(content-length) lt 0
+#       acl forbidden_hdrs hdr_cnt(proxy-authorization) gt 0
+#       block if forbidden_hdrs
+#
+#       # block annoying worms that fill the logs...
+#       acl forbidden_uris url_reg -i .*(\.|%2e)(\.|%2e)(%2f|%5c|/|\\\\)
+#       acl forbidden_uris url_sub -i %00 <script xmlrpc.php
+#       acl forbidden_uris path_end -i /root.exe /cmd.exe /default.ida /awstats.pl .asp .dll
+#
+#       # block other common attacks (awstats, manual discovery...)
+#       acl forbidden_uris path_dir -i chat main.php read_dump.php viewtopic.php phpbb sumthin horde _vti_bin MSOffice
+#       acl forbidden_uris url_reg -i (\.php\?temppath=|\.php\?setmodules=|[=:]http://)
+#       block if forbidden_uris
+#
+#       # we rewrite the "options" request so that it only tries '*', and we
+#       # only report GET, HEAD, POST and OPTIONS as valid methods
+#       reqirep         OPTIONS\ /.*HTTP/1\.[01]$ OPTIONS\ \\*\ HTTP/1.0
+#       rspirep         Allow:\ .* Allow:\ GET,\ HEAD,\ POST,\ OPTIONS
+#
+#       acl host_demo   hdr_beg(host) -i demo.
+#       acl host_www2   hdr_beg(host) -i www2.
+#
+#       use_backend     demo   if host_demo
+#       use_backend     www2   if host_www2
+#       default_backend www
+#
+#backend www
+#
+#       # allow other syntactically valid requests, and block any other method
+#        acl valid_method method GET HEAD POST OPTIONS
+#        block if !valid_method
+#        block if HTTP_URL_STAR !METH_OPTIONS
+#        block if !HTTP_URL_SLASH !HTTP_URL_STAR !HTTP_URL_ABS

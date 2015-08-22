@@ -1,0 +1,90 @@
+#
+# This is BACKUP keepalived configuration
+#
+##########################
+# Globals configurations #
+##########################
+global_defs {
+   notification_email {
+   alerts_a1@chinanetcloud.com
+   }
+   notification_email_from srv-example-lb2
+   smtp_server 127.0.0.1
+   smtp_connect_timeout 60
+   router_id BACKUP_srv-example-lb2
+}
+
+###########################
+# vrrp_script each define #
+###########################
+# check if haproxy process is okay
+vrrp_script chk_my_haproxy {
+        script "killall -0 haproxy"
+        interval 1
+        fall 2
+        rise 5
+}
+
+# check if web content from haproxy is okay
+vrrp_script chk_my_content {
+        # please change the nodes ip, haproxy ip , and check content
+        script "/etc/keepalived/track-scripts/check_my_content.sh"
+
+        # be careful of it ,otherwise there will bee a lot of cronjob
+        interval 6
+        fall 2
+        rise 5
+}
+
+#############################
+# vrrp_instance each define #
+#############################
+vrrp_instance VI_1 {
+#        # run the script when the status change (ie don't include parameters in the notify line).
+#
+#        # info zabbix and run other script like ensure get the eip
+#        notify_master "/etc/keepalived/notify_master.sh"
+#
+#        # info zabbix and run other script like ensure release the eip
+#        notify_backup "/etc/keepalived/notify_backup.sh"
+#
+#        # info zabbix
+#        notify "/etc/keepalived/notify_unkown.sh"
+#
+#        # info zabbix and run other script like ensure release the eip
+#        notify_fault "/etc/keepalived/notify_fault.sh"
+
+        # heartbeat communicate interface
+        interface eth1
+
+        # just a initial value , will be changed depends on two prio
+        state BACKUP
+
+        # should be the same
+        virtual_router_id 51
+
+        # initial value , will be changed after vrrp script check
+        # 101 on master, 100 on backup
+        priority 100
+
+        # vip
+        virtual_ipaddress {
+            61.129.13.77/24 brd 61.129.13.255 dev eth1 scope global secondary label eth1:ha
+        }
+
+        # vrrp script 
+        track_script {
+            # default priority +-: if process exsit
+            chk_my_haproxy weight 3
+
+            # default priority +-: if return 0
+            chk_my_content weight 20    
+        }
+
+        # authentication between two keepalive 
+        authentication{
+            auth_type PASS              
+            auth_pass ChinaNetCloud
+        }
+}
+
